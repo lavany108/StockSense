@@ -17,11 +17,14 @@ import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { ProfilePage } from '@/pages/settings/ProfilePage';
 import { getSocket } from '@/lib/socket';
 
+import { useAuthStore } from '@/store/authStore';
+
 export const App: React.FC = () => {
+  const checkAuth = useAuthStore(state => state.checkAuth);
+
   useEffect(() => {
-    // Initialize socket connection
-    getSocket();
-  }, []);
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <>
