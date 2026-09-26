@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts",
+    "verify": "ts-node scripts/verify.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

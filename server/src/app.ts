@@ -11,6 +11,9 @@ import locationsRouter from './routes/locations';
 import categoriesRouter from './routes/categories';
 import productsRouter from './routes/products';
 import partnersRouter from './routes/partners';
+import documentsRouter from './routes/documents';
+import stockRouter from './routes/stock';
+import reordersRouter from './routes/reorders';
 import { errorHandler } from './middleware/errorHandler';
 
 export const createApp = (): Application => {
@@ -53,6 +56,10 @@ export const createApp = (): Application => {
   app.use('/api/v1/categories', categoriesRouter);
   app.use('/api/v1/products', productsRouter);
   app.use('/api/v1/partners', partnersRouter);
+  app.use('/api/v1/documents', documentsRouter);
+  app.use('/api/v1/stock', stockRouter);
+  app.use('/api/v1/dashboard', stockRouter);  // GET /api/v1/dashboard/kpis hits stockRouter's /kpis handler
+  app.use('/api/v1/reorders', reordersRouter);
 
   // ── Global error handler ──────────────────────────────────────────────────
   app.use(errorHandler);

@@ -2,6 +2,7 @@ import http from 'http';
 import dotenv from 'dotenv';
 import { Server as SocketIOServer } from 'socket.io';
 import { createApp } from './app';
+import { initSocket } from './lib/socket';
 
 dotenv.config();
 
@@ -16,16 +17,8 @@ const io = new SocketIOServer(server, {
   },
 });
 
-io.on('connection', (socket) => {
-  // Join room for specific warehouse notifications
-  socket.on('join_warehouse', (warehouseId: string) => {
-    socket.join(`warehouse:${warehouseId}`);
-  });
-
-  socket.on('disconnect', () => {
-    // Clean up
-  });
-});
+// Initialize socket layer (JWT auth + warehouse rooms)
+initSocket(io);
 
 server.listen(PORT, () => {
   console.log(`[StockSense Pro API] Server running on port ${PORT}`);

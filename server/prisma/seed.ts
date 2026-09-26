@@ -158,6 +158,7 @@ async function main() {
   // 1) RECEIPT: VENDOR → Main Store +100
   const receiptDoc = await prisma.document.create({
     data: {
+      docNumber: 'REC-2026-0001',
       type: 'RECEIPT',
       status: 'DONE',
       sourceLocationId: vendorLoc.id,
@@ -186,6 +187,7 @@ async function main() {
   // 2) TRANSFER: Main Store → Production Rack 100
   const transferDoc = await prisma.document.create({
     data: {
+      docNumber: 'TRF-2026-0001',
       type: 'TRANSFER',
       status: 'DONE',
       sourceLocationId: mainStore.id,
@@ -213,6 +215,7 @@ async function main() {
   // 3) DELIVERY: Production Rack → CUSTOMER -20
   const deliveryDoc = await prisma.document.create({
     data: {
+      docNumber: 'DEL-2026-0001',
       type: 'DELIVERY',
       status: 'DONE',
       sourceLocationId: productionRack.id,
@@ -241,7 +244,11 @@ async function main() {
   // 4) ADJUSTMENT: Production Rack → DAMAGE -3
   const adjustmentDoc = await prisma.document.create({
     data: {
+      docNumber: 'ADJ-2026-0001',
       type: 'ADJUSTMENT',
+      reasonCode: 'DAMAGED',
+      reasonNote: 'Damaged in transit',
+      validatedAt: new Date(),
       status: 'DONE',
       sourceLocationId: productionRack.id,
       destLocationId: damageLoc.id,

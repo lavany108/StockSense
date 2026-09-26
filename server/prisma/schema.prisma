@@ -49,6 +49,14 @@ enum StockMoveRefType {
   ADJUSTMENT
 }
 
+enum AdjustmentReason {
+  DAMAGED
+  EXPIRED
+  LOST_THEFT
+  INVENTORY_COUNT_CORRECTION
+  FOUND_STOCK
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -147,22 +155,27 @@ model StockLevel {
 }
 
 model Document {
-  id               String         @id @default(uuid())
+  id               String            @id @default(uuid())
+  docNumber        String            @unique
   type             DocType
-  status           DocStatus      @default(DRAFT)
+  status           DocStatus         @default(DRAFT)
   sourceLocationId String?
-  sourceLocation   Location?      @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  sourceLocation   Location?         @relation("SourceLocation", fields: [sourceLocationId], references: [id])
   destLocationId   String?
-  destLocation     Location?      @relation("DestLocation", fields: [destLocationId], references: [id])
+  destLocation     Location?         @relation("DestLocation", fields: [destLocationId], references: [id])
   partnerId        String?
-  partner          Partner?       @relation(fields: [partnerId], references: [id])
+  partner          Partner?          @relation(fields: [partnerId], references: [id])
+  reasonCode       AdjustmentReason?
+  reasonNote       String?
   scheduledDate    DateTime?
   createdById      String
-  createdBy        User           @relation(fields: [createdById], references: [id])
+  createdBy        User              @relation(fields: [createdById], references: [id])
   lines            DocumentLine[]
   stockMoves       StockMove[]
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  validatedAt      DateTime?
+  canceledAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@map("documents")
 }
