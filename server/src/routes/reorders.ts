@@ -140,4 +140,101 @@ router.get(
   }
 );
 
+// ── Schemas for Reorder Rules ─────────────────────────────────────────────────
+import { z } from 'zod';
+import { requireRole } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+
+const reorderRuleSchema = z.object({
+  productId: z.string().uuid(),
+  minQty: z.number().min(0),
+  reorderQty: z.number().min(0),
+});
+
+// ── GET /reorders/rules ───────────────────────────────────────────────────────
+router.get('/rules', requireAuth, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rules = await prisma.reorderRule.findMany({
+      include: {
+        product: { select: { id: true, sku: true, name: true, uom: true, safetyStock: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(rules);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// ── POST /reorders/rules ──────────────────────────────────────────────────────
+router.post(
+  '/rules',
+  requireAuth,
+  requireRole('MANAGER'),
+  validate(reorderRuleSchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data = req.body as z.infer<typeof reorderRuleSchema>;
+      const rule = await prisma.reorderRule.create({
+        data,
+        include: { product: true },
+      });
+      // Optionally sync with product's safetyStock and reorderQty
+      await prisma.product.update({
+        where: { id: data.productId },
+        data: { safetyStock: Math.round(data.minQty), reorderQty: Math.round(data.reorderQty) },
+      });
+      res.status(201).json(rule);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+// ── PUT /reorders/rules/:id ───────────────────────────────────────────────────
+router.put(
+  '/rules/:id',
+  requireAuth,
+  requireRole('MANAGER'),
+  validate(reorderRuleSchema.partial()),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params['id'] as string;
+      const rule = await prisma.reorderRule.update({
+        where: { id },
+        data: req.body,
+        include: { product: true },
+      });
+      if (req.body.minQty !== undefined || req.body.reorderQty !== undefined) {
+        await prisma.product.update({
+          where: { id: rule.productId },
+          data: {
+            ...(req.body.minQty !== undefined ? { safetyStock: Math.round(req.body.minQty) } : {}),
+            ...(req.body.reorderQty !== undefined ? { reorderQty: Math.round(req.body.reorderQty) } : {}),
+          },
+        });
+      }
+      res.json(rule);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+// ── DELETE /reorders/rules/:id ────────────────────────────────────────────────
+router.delete(
+  '/rules/:id',
+  requireAuth,
+  requireRole('MANAGER'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params['id'] as string;
+      await prisma.reorderRule.delete({ where: { id } });
+      res.status(204).send();
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 export default router;

@@ -201,4 +201,42 @@ router.post(
   }
 );
 
+// ── POST /change-password ─────────────────────────────────────────────────────
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+router.post(
+  '/change-password',
+  requireAuth,
+  validate(changePasswordSchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { currentPassword, newPassword } = req.body as z.infer<typeof changePasswordSchema>;
+      const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+      if (!user) {
+        res.status(404).json({ errors: { user: 'User not found' } });
+        return;
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isMatch) {
+        res.status(400).json({ errors: { currentPassword: 'Incorrect current password' } });
+        return;
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      });
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 export default router;

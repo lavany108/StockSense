@@ -16,6 +16,9 @@ import {
   ChevronDown,
   AlertTriangle,
   ExternalLink,
+  ShoppingCart,
+  ArrowRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { joinWarehouseRoom, subscribeToSocket } from '@/lib/socket';
@@ -32,27 +35,34 @@ import { Button } from '@/components/ui/Button';
 
 export const AppLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
+  const isManager = user?.role === 'MANAGER';
   const location = useLocation();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [lowStockCount, setLowStockCount] = useState<number>(0);
   const [lowStockItems, setLowStockItems] = useState<any[]>([]);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [reorderDrafts, setReorderDrafts] = useState<any[]>([]);
   const [isLowStockModalOpen, setIsLowStockModalOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
-  // Fetch low stock count for the notification bell
+  // Fetch low stock info & reorder drafts for the notification bell
   const fetchLowStockInfo = async () => {
     try {
-      const res = await api.get('/dashboard/kpis');
-      if (res.data?.lowStockCount !== undefined) {
-        setLowStockCount(res.data.lowStockCount);
+      const [kpiRes, levelsRes, draftsRes] = await Promise.all([
+        api.get('/dashboard/kpis').catch(() => ({ data: {} })),
+        api.get('/stock/levels?belowSafety=true&limit=20').catch(() => ({ data: {} })),
+        api.get('/reorders/drafts').catch(() => ({ data: { drafts: [] } })),
+      ]);
+
+      if (kpiRes.data?.lowStockCount !== undefined) {
+        setLowStockCount(kpiRes.data.lowStockCount);
       }
-      // Also fetch the specific items
-      const levelsRes = await api.get('/stock/levels?belowSafety=true&limit=10');
       if (levelsRes.data?.data) {
         setLowStockItems(levelsRes.data.data);
+      }
+      if (draftsRes.data?.drafts) {
+        setReorderDrafts(draftsRes.data.drafts);
       }
     } catch (err) {
       console.warn('Error fetching low stock info for bell:', err);
@@ -69,11 +79,13 @@ export const AppLayout: React.FC = () => {
     const unsubStatus = subscribeToSocket('document:validated', fetchLowStockInfo);
     const unsubStock = subscribeToSocket('stock:updated', fetchLowStockInfo);
     const unsubAlert = subscribeToSocket('alert:low-stock', fetchLowStockInfo);
+    const unsubCreated = subscribeToSocket('document:created', fetchLowStockInfo);
 
     return () => {
       unsubStatus();
       unsubStock();
       unsubAlert();
+      unsubCreated();
     };
   }, [user?.warehouseId]);
 
@@ -81,16 +93,21 @@ export const AppLayout: React.FC = () => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Products', path: '/products', icon: Package },
     { name: 'Operations', path: '/operations', icon: ArrowLeftRight },
-    { name: 'Move History', path: '/moves', icon: History },
+    { name: 'Move History', path: '/history', icon: History },
     { name: 'Scan', path: '/scan', icon: QrCode },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    ...(isManager ? [{ name: 'Settings', path: '/settings', icon: Settings }] : []),
   ];
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/dashboard?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
+  };
+
+  const handleReviewDraft = (draft: any) => {
+    setIsLowStockModalOpen(false);
+    navigate(`/operations?docId=${draft.id}&docNumber=${draft.docNumber}`);
   };
 
   return (
@@ -109,7 +126,7 @@ export const AppLayout: React.FC = () => {
                 PRO
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 font-mono tracking-tight">Odoo Architecture IMS</p>
+            <p className="text-[10px] text-slate-400 font-mono tracking-tight">Double-Entry IMS</p>
           </div>
         </div>
 
@@ -149,7 +166,10 @@ export const AppLayout: React.FC = () => {
 
         {/* Bottom User Info & Role indicator */}
         <div className="p-3 border-t border-slate-800/80 bg-slate-900/90">
-          <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+          <div
+            onClick={() => navigate('/profile')}
+            className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-slate-700 transition-colors"
+          >
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="h-8 w-8 rounded-lg bg-[#714B67]/30 border border-[#714B67]/50 flex items-center justify-center text-[#dfbed3] font-bold text-xs">
                 {user?.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -178,7 +198,7 @@ export const AppLayout: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Global search (docs, SKU, partner)..."
+              placeholder="Global search (docs, SKU, product)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-9 w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-9 pr-8 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67] transition-all"
@@ -193,9 +213,16 @@ export const AppLayout: React.FC = () => {
             {/* Low-stock Notification Bell */}
             <div className="relative">
               <button
-                onClick={() => setIsLowStockModalOpen(true)}
+                onClick={() => {
+                  fetchLowStockInfo();
+                  setIsLowStockModalOpen(true);
+                }}
                 className="relative p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition-colors"
-                title={lowStockCount > 0 ? `${lowStockCount} items below safety stock` : 'No low stock alerts'}
+                title={
+                  lowStockCount > 0
+                    ? `${lowStockCount} items below safety stock`
+                    : 'No low stock alerts'
+                }
               >
                 <Bell className="h-5 w-5" />
                 {lowStockCount > 0 && (
@@ -216,8 +243,12 @@ export const AppLayout: React.FC = () => {
                   {user?.name?.charAt(0)?.toUpperCase() || 'M'}
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-xs font-semibold text-slate-200 leading-none">{user?.name || 'Account'}</p>
-                  <span className="text-[10px] text-slate-400 leading-tight capitalize">{user?.role?.toLowerCase() || 'staff'}</span>
+                  <p className="text-xs font-semibold text-slate-200 leading-none">
+                    {user?.name || 'Account'}
+                  </p>
+                  <span className="text-[10px] text-slate-400 leading-tight capitalize">
+                    {user?.role?.toLowerCase() || 'staff'}
+                  </span>
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 text-slate-400 ml-1" />
               </button>
@@ -243,13 +274,26 @@ export const AppLayout: React.FC = () => {
                     <button
                       onClick={() => {
                         setIsProfileDropdownOpen(false);
-                        setIsProfileOpen(true);
+                        navigate('/profile');
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors"
                     >
                       <UserIcon className="h-4 w-4 text-slate-400" />
                       <span>My Profile</span>
                     </button>
+
+                    {isManager && (
+                      <button
+                        onClick={() => {
+                          setIsProfileDropdownOpen(false);
+                          navigate('/settings');
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors"
+                      >
+                        <Settings className="h-4 w-4 text-slate-400" />
+                        <span>Settings & Master Data</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {
@@ -274,120 +318,109 @@ export const AppLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* ── My Profile Modal ──────────────────────────────────────────────────── */}
-      <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-        <DialogContent className="max-w-md">
+      {/* ── Low Stock & Auto-Draft PO Modal (from Bell) ────────────────────────── */}
+      <Dialog open={isLowStockModalOpen} onOpenChange={setIsLowStockModalOpen}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-[#dfbed3]" />
-              User Profile & Role
+            <DialogTitle className="flex items-center gap-2 text-amber-400">
+              <AlertTriangle className="h-5 w-5 text-amber-400" />
+              Low Stock Alerts & Auto-Draft POs ({lowStockCount})
             </DialogTitle>
             <DialogDescription>
-              Details of your current authenticated session in StockSense Pro.
+              Inventory items below safety stock thresholds with auto-generated replenishment purchase orders.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
-              <div className="h-12 w-12 rounded-xl bg-[#714B67] flex items-center justify-center text-white font-bold text-lg">
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </div>
-              <div>
-                <h4 className="font-semibold text-white">{user?.name}</h4>
-                <p className="text-xs text-slate-400">{user?.email}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant={user?.role === 'MANAGER' ? 'default' : 'secondary'}>
-                    {user?.role}
-                  </Badge>
-                  {user?.warehouseId && (
-                    <span className="text-[11px] text-slate-400">WH: {user.warehouseId}</span>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Auto-Drafted POs Section */}
+            {reorderDrafts.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-[#dfbed3] uppercase tracking-wider flex items-center gap-1.5">
+                  <ShoppingCart className="h-3.5 w-3.5" />
+                  Auto-Drafted Replenishment POs ({reorderDrafts.length})
+                </h4>
+                <div className="space-y-2">
+                  {reorderDrafts.map((draft) => (
+                    <div
+                      key={draft.id}
+                      className="p-3 rounded-xl border border-[#714B67]/40 bg-[#714B67]/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-white">
+                            {draft.docNumber}
+                          </span>
+                          <Badge variant="draft" className="text-[10px]">
+                            DRAFT RECEIPT
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-1">
+                          Product: <span className="font-mono text-amber-300">{draft.lines?.[0]?.product?.sku}</span> &bull;{' '}
+                          Reorder Target: <strong className="text-white">{draft.lines?.[0]?.qty} {draft.lines?.[0]?.product?.uom}</strong>
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Supplier: {draft.partner?.name || 'Default Supplier'} &rarr; Dest: {draft.destLocation?.name || 'Main Stock'}
+                        </p>
+                      </div>
 
-            <div className="text-xs space-y-2 text-slate-400 bg-slate-900/50 p-3 rounded-xl border border-slate-800/80">
-              <div className="flex justify-between py-1 border-b border-slate-800">
-                <span>Account ID</span>
-                <span className="font-mono text-slate-200">{user?.id}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-800">
-                <span>Role Permissions</span>
-                <span className="text-emerald-400 font-medium">
-                  {user?.role === 'MANAGER' ? 'Full Operational & Cancellation Access' : 'Standard Floor Staff Operations'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>Session Security</span>
-                <span className="text-slate-200">httpOnly Cookie (stocksense_token)</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setIsProfileOpen(false)}>
-              Close
-            </Button>
-            <Button variant="destructive" onClick={() => logout()}>
-              <LogOut className="h-4 w-4 mr-1.5" />
-              Sign Out
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Low Stock Modal (from Bell) ────────────────────────────────────────── */}
-      <Dialog open={isLowStockModalOpen} onOpenChange={setIsLowStockModalOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-400">
-              <AlertTriangle className="h-5 w-5 text-amber-400" />
-              Low Stock Alerts ({lowStockCount})
-            </DialogTitle>
-            <DialogDescription>
-              Products currently below safety reorder threshold at warehouse internal locations.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="max-h-80 overflow-y-auto space-y-2 py-2">
-            {lowStockItems.length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">
-                All inventory items are currently above safety stock levels.
-              </p>
-            ) : (
-              lowStockItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-semibold text-amber-300">
-                        {item.product?.sku}
-                      </span>
-                      <span className="text-xs text-white font-medium">
-                        {item.product?.name}
-                      </span>
+                      <Button
+                        size="sm"
+                        onClick={() => handleReviewDraft(draft)}
+                        className="text-xs h-8 bg-[#714B67] hover:bg-[#5f3d56] text-white self-start sm:self-auto shrink-0 shadow-sm"
+                      >
+                        Review Auto-Drafted PO
+                        <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                      </Button>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Warehouse: {item.location?.warehouse?.name || 'Main Warehouse'} &bull; Shelf:{' '}
-                      {item.location?.name || 'Internal'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-bold text-rose-400">
-                      {item.qty} {item.product?.uom}
-                    </span>
-                    <p className="text-[10px] text-slate-400">
-                      Safety: {item.product?.safetyStock}
-                    </p>
-                  </div>
+                  ))}
                 </div>
-              ))
+              </div>
             )}
+
+            {/* Low Stock Items List */}
+            <div className="space-y-2 pt-2">
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Products Below Safety Minimum
+              </h4>
+              {lowStockItems.length === 0 ? (
+                <p className="text-xs text-slate-400 py-3 text-center bg-slate-950/60 rounded-xl border border-slate-800">
+                  All inventory balances currently exceed safety stock levels.
+                </p>
+              ) : (
+                lowStockItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold text-amber-300">
+                          {item.product?.sku}
+                        </span>
+                        <span className="text-xs text-white font-medium">
+                          {item.product?.name}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Warehouse: {item.location?.warehouse?.name || 'Main Warehouse'} &bull; Bin:{' '}
+                        {item.location?.name || 'Internal'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-rose-400">
+                        {item.qty} {item.product?.uom}
+                      </span>
+                      <p className="text-[10px] text-slate-400">
+                        Safety Min: {item.product?.safetyStock}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
-          <div className="flex justify-between items-center pt-2">
+          <div className="flex justify-between items-center pt-2 border-t border-slate-800">
             <Button
               variant="outline"
               size="sm"
@@ -396,7 +429,7 @@ export const AppLayout: React.FC = () => {
                 navigate('/products');
               }}
             >
-              View Products
+              Catalog View
               <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setIsLowStockModalOpen(false)}>

@@ -359,6 +359,49 @@ router.patch(
   }
 );
 
+// ── PATCH /documents/:id/status ──────────────────────────────────────────────
+router.patch(
+  '/:id/status',
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params['id'] as string;
+      const { status } = req.body as { status: DocStatus };
+      const doc = await prisma.document.findUnique({
+        where: { id },
+        include: { sourceLocation: { include: { warehouse: true } }, destLocation: { include: { warehouse: true } } },
+      });
+      if (!doc) { res.status(404).json({ errors: { document: 'Not found' } }); return; }
+
+      const validTransitions: Record<string, string[]> = {
+        DRAFT: ['WAITING'],
+        WAITING: ['READY'],
+      };
+
+      if (!validTransitions[doc.status]?.includes(status)) {
+        res.status(409).json({ errors: { status: `Invalid transition from ${doc.status} to ${status}` } });
+        return;
+      }
+
+      const updated = await prisma.document.update({
+        where: { id },
+        data: { status },
+      });
+
+      const warehouseId = doc.sourceLocation?.warehouseId ?? doc.destLocation?.warehouseId;
+      if (warehouseId) {
+        emitToWarehouse(warehouseId, 'document:status_changed', {
+          id: updated.id, docNumber: updated.docNumber, status: updated.status,
+        });
+      }
+
+      res.json(updated);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 // ── POST /documents/:id/validate — READY→DONE (atomic transaction) ────────────
 
 router.post(

@@ -14,6 +14,7 @@ import { OperationsPage } from '@/pages/operations/OperationsPage';
 import { MovesPage } from '@/pages/moves/MovesPage';
 import { ScanPage } from '@/pages/scan/ScanPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
+import { ProfilePage } from '@/pages/settings/ProfilePage';
 import { getSocket } from '@/lib/socket';
 
 export const App: React.FC = () => {
@@ -54,9 +55,11 @@ export const App: React.FC = () => {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/operations" element={<OperationsPage />} />
-              <Route path="/moves" element={<MovesPage />} />
+              <Route path="/history" element={<MovesPage />} />
+              <Route path="/moves" element={<Navigate to="/history" replace />} />
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
 
