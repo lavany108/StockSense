@@ -1,0 +1,169 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  MANAGER
+  STAFF
+}
+
+enum DocStatus {
+  DRAFT
+  WAITING
+  READY
+  DONE
+  CANCELED
+}
+
+enum DocType {
+  RECEIPT
+  DELIVERY
+  INTERNAL_TRANSFER
+  ADJUSTMENT
+}
+
+enum LocationType {
+  INTERNAL
+  VENDOR
+  CUSTOMER
+  LOSS
+}
+
+enum AdjustmentReason {
+  DAMAGED
+  EXPIRED
+  LOST_THEFT
+  INVENTORY_COUNT_CORRECTION
+  FOUND_STOCK
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  role         Role          @default(STAFF)
+  warehouseId  String?
+  warehouse    Warehouse?    @relation(fields: [warehouseId], references: [id])
+  stockMoves   StockMove[]
+  documents    Document[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  email     String
+  otpHash   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@map("password_resets")
+}
+
+model Warehouse {
+  id        String     @id @default(uuid())
+  code      String     @unique
+  name      String
+  address   String?
+  locations Location[]
+  users     User[]
+  documents Document[]
+  createdAt DateTime   @default(now())
+
+  @@map("warehouses")
+}
+
+model Location {
+  id          String       @id @default(uuid())
+  name        String
+  barcode     String?      @unique
+  type        LocationType @default(INTERNAL)
+  warehouseId String?
+  warehouse   Warehouse?   @relation(fields: [warehouseId], references: [id])
+  movesFrom   StockMove[]  @relation("MovesFrom")
+  movesTo     StockMove[]  @relation("MovesTo")
+
+  @@map("locations")
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  sku         String        @unique
+  barcode     String?       @unique
+  name        String
+  description String?
+  category    String
+  unit        String        @default("Units")
+  minStock    Int           @default(10)
+  moves       StockMove[]
+  docItems    DocItem[]
+  createdAt   DateTime      @default(now())
+
+  @@map("products")
+}
+
+model Document {
+  id          String            @id @default(uuid())
+  docNumber   String            @unique
+  type        DocType
+  status      DocStatus         @default(DRAFT)
+  warehouseId String
+  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id])
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  partnerName String?
+  reasonCode  AdjustmentReason?
+  reasonNote  String?
+  items       DocItem[]
+  stockMoves  StockMove[]
+  createdAt   DateTime          @default(now())
+  validatedAt DateTime?
+  canceledAt  DateTime?
+
+  @@map("documents")
+}
+
+model DocItem {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  expectedQty Float
+  doneQty     Float    @default(0)
+
+  @@map("doc_items")
+}
+
+model StockMove {
+  id             String       @id @default(uuid())
+  productId      String
+  product        Product      @relation(fields: [productId], references: [id])
+  fromLocationId String
+  fromLocation   Location     @relation("MovesFrom", fields: [fromLocationId], references: [id])
+  toLocationId   String
+  toLocation     Location     @relation("MovesTo", fields: [toLocationId], references: [id])
+  qty            Float
+  refType        DocType
+  documentId     String
+  document       Document     @relation(fields: [documentId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@index([productId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([documentId])
+  @@map("stock_moves")
+}
