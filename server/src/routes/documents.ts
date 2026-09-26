@@ -153,8 +153,9 @@ router.get(
 
 router.get('/:id', requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const id = req.params['id'] as string;
     const doc = await prisma.document.findUnique({
-      where: { id: req.params['id'] },
+      where: { id },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
         partner: true,
@@ -236,10 +237,14 @@ router.post(
         sourceLocationId = srcLoc.id;
         destLocationId = dstLoc.id;
       } else {
-        // ADJUSTMENT — locations are per-line; use a dummy pair (adjusted below during validate)
-        // We still need locations for the doc record; use LOSS location as both
+        // ADJUSTMENT
         const lossLoc = await getVirtualLocation('DAMAGE');
-        sourceLocationId = lossLoc.id;
+        const lineLocId = body.type === 'ADJUSTMENT' ? body.lines[0].locationId : undefined;
+        if (!lineLocId) {
+          res.status(400).json({ errors: { locationId: 'Adjustment line requires locationId' } });
+          return;
+        }
+        sourceLocationId = lineLocId;
         destLocationId = lossLoc.id;
       }
 
@@ -316,6 +321,7 @@ router.patch(
   requireAuth,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      console.log(`PATCH /documents/${req.params['id']}/assign START`);
       const id = req.params['id'] as string;
       const doc = await prisma.document.findUnique({
         where: { id },
@@ -359,6 +365,7 @@ router.post(
   '/:id/validate',
   requireAuth,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    console.log(`POST /documents/${req.params['id']}/validate START`);
     const docId = req.params['id'] as string;
     const userId = req.user!.userId;
 
@@ -569,8 +576,10 @@ router.post(
         }
       }
 
+      console.log(`POST /documents/${docId}/validate DONE`);
       res.json(result.doc);
     } catch (e: unknown) {
+      console.error(`POST /documents/${req.params['id']}/validate ERROR:`, e);
       const err = e as Error & { httpStatus?: number; code?: string };
       if (err.httpStatus) {
         res.status(err.httpStatus).json({ errors: { validation: err.message } });
