@@ -7,9 +7,31 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 enum Role {
   MANAGER
   STAFF
+}
+
+enum LocationType {
+  INTERNAL
+  VENDOR
+  CUSTOMER
+  TRANSIT
+  DAMAGE
+}
+
+enum PartnerType {
+  SUPPLIER
+  CUSTOMER
+}
+
+enum DocType {
+  RECEIPT
+  DELIVERY
+  TRANSFER
+  ADJUSTMENT
 }
 
 enum DocStatus {
@@ -20,150 +42,187 @@ enum DocStatus {
   CANCELED
 }
 
-enum DocType {
+enum StockMoveRefType {
   RECEIPT
   DELIVERY
-  INTERNAL_TRANSFER
+  TRANSFER
   ADJUSTMENT
 }
 
-enum LocationType {
-  INTERNAL
-  VENDOR
-  CUSTOMER
-  LOSS
-}
-
-enum AdjustmentReason {
-  DAMAGED
-  EXPIRED
-  LOST_THEFT
-  INVENTORY_COUNT_CORRECTION
-  FOUND_STOCK
-}
+// ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  passwordHash String
+  id           String      @id @default(uuid())
   name         String
-  role         Role          @default(STAFF)
-  warehouseId  String?
-  warehouse    Warehouse?    @relation(fields: [warehouseId], references: [id])
-  stockMoves   StockMove[]
+  email        String      @unique
+  passwordHash String
+  role         Role        @default(STAFF)
   documents    Document[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  stockMoves   StockMove[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@map("users")
 }
 
-model PasswordReset {
-  id        String    @id @default(uuid())
-  email     String
-  otpHash   String
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  @@index([email])
-  @@map("password_resets")
-}
-
 model Warehouse {
   id        String     @id @default(uuid())
-  code      String     @unique
   name      String
-  address   String?
+  code      String     @unique
   locations Location[]
-  users     User[]
-  documents Document[]
   createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@map("warehouses")
 }
 
 model Location {
-  id          String       @id @default(uuid())
-  name        String
-  barcode     String?      @unique
-  type        LocationType @default(INTERNAL)
-  warehouseId String?
-  warehouse   Warehouse?   @relation(fields: [warehouseId], references: [id])
-  movesFrom   StockMove[]  @relation("MovesFrom")
-  movesTo     StockMove[]  @relation("MovesTo")
+  id           String       @id @default(uuid())
+  name         String
+  type         LocationType @default(INTERNAL)
+  warehouseId  String?
+  warehouse    Warehouse?   @relation(fields: [warehouseId], references: [id])
+  stockLevels  StockLevel[]
+  movesFrom    StockMove[]  @relation("MovesFrom")
+  movesTo      StockMove[]  @relation("MovesTo")
+  docsAsSource Document[]   @relation("SourceLocation")
+  docsAsDest   Document[]   @relation("DestLocation")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@map("locations")
 }
 
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("categories")
+}
+
 model Product {
-  id          String        @id @default(uuid())
-  sku         String        @unique
-  barcode     String?       @unique
-  name        String
-  description String?
-  category    String
-  unit        String        @default("Units")
-  minStock    Int           @default(10)
-  moves       StockMove[]
-  docItems    DocItem[]
-  createdAt   DateTime      @default(now())
+  id           String        @id @default(uuid())
+  sku          String        @unique
+  name         String
+  uom          String        @default("Units")
+  safetyStock  Int           @default(0)
+  reorderQty   Int           @default(0)
+  categoryId   String
+  category     Category      @relation(fields: [categoryId], references: [id])
+  stockLevels  StockLevel[]
+  docLines     DocumentLine[]
+  stockMoves   StockMove[]
+  reorderRules ReorderRule[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@map("products")
 }
 
+model Partner {
+  id        String      @id @default(uuid())
+  name      String
+  type      PartnerType
+  documents Document[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("partners")
+}
+
+model StockLevel {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  qty        Float    @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([productId, locationId])
+  @@map("stock_levels")
+}
+
 model Document {
-  id          String            @id @default(uuid())
-  docNumber   String            @unique
-  type        DocType
-  status      DocStatus         @default(DRAFT)
-  warehouseId String
-  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id])
-  userId      String
-  user        User              @relation(fields: [userId], references: [id])
-  partnerName String?
-  reasonCode  AdjustmentReason?
-  reasonNote  String?
-  items       DocItem[]
-  stockMoves  StockMove[]
-  createdAt   DateTime          @default(now())
-  validatedAt DateTime?
-  canceledAt  DateTime?
+  id               String         @id @default(uuid())
+  type             DocType
+  status           DocStatus      @default(DRAFT)
+  sourceLocationId String?
+  sourceLocation   Location?      @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  destLocationId   String?
+  destLocation     Location?      @relation("DestLocation", fields: [destLocationId], references: [id])
+  partnerId        String?
+  partner          Partner?       @relation(fields: [partnerId], references: [id])
+  scheduledDate    DateTime?
+  createdById      String
+  createdBy        User           @relation(fields: [createdById], references: [id])
+  lines            DocumentLine[]
+  stockMoves       StockMove[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@map("documents")
 }
 
-model DocItem {
-  id          String   @id @default(uuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
-  expectedQty Float
-  doneQty     Float    @default(0)
+model DocumentLine {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  qty        Float
+  pickedQty  Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  @@map("doc_items")
+  @@map("document_lines")
 }
 
 model StockMove {
-  id             String       @id @default(uuid())
+  id             String           @id @default(uuid())
   productId      String
-  product        Product      @relation(fields: [productId], references: [id])
-  fromLocationId String
-  fromLocation   Location     @relation("MovesFrom", fields: [fromLocationId], references: [id])
-  toLocationId   String
-  toLocation     Location     @relation("MovesTo", fields: [toLocationId], references: [id])
+  product        Product          @relation(fields: [productId], references: [id])
+  fromLocationId String?
+  fromLocation   Location?        @relation("MovesFrom", fields: [fromLocationId], references: [id])
+  toLocationId   String?
+  toLocation     Location?        @relation("MovesTo", fields: [toLocationId], references: [id])
   qty            Float
-  refType        DocType
-  documentId     String
-  document       Document     @relation(fields: [documentId], references: [id])
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  createdAt      DateTime     @default(now())
+  refType        StockMoveRefType
+  documentId     String?
+  document       Document?        @relation(fields: [documentId], references: [id])
+  performedById  String
+  performedBy    User             @relation(fields: [performedById], references: [id])
+  createdAt      DateTime         @default(now())
 
   @@index([productId])
   @@index([fromLocationId])
   @@index([toLocationId])
-  @@index([documentId])
   @@map("stock_moves")
+}
+
+model OtpToken {
+  id         String   @id @default(uuid())
+  email      String
+  hashedOtp  String
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+  @@map("otp_tokens")
+}
+
+model ReorderRule {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQty    Float
+  reorderQty Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reorder_rules")
 }
