@@ -1,28 +1,71 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
-export default function App() {
+import { ProtectedRoute, PublicRoute } from '@/components/layout/RouteGuards';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { LoginPage } from '@/pages/auth/LoginPage';
+import { SignupPage } from '@/pages/auth/SignupPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
+import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import { ProductsPage } from '@/pages/products/ProductsPage';
+import { OperationsPage } from '@/pages/operations/OperationsPage';
+import { MovesPage } from '@/pages/moves/MovesPage';
+import { ScanPage } from '@/pages/scan/ScanPage';
+import { SettingsPage } from '@/pages/settings/SettingsPage';
+import { getSocket } from '@/lib/socket';
+
+export const App: React.FC = () => {
+  useEffect(() => {
+    // Initialize socket connection
+    getSocket();
+  }, []);
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
-      <div className="max-w-xl rounded-xl border border-border bg-card p-8 shadow-2xl">
-        <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-          Odoo Hackathon IMS
-        </div>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">
-          StockSense Pro
-        </h1>
-        <p className="mt-3 text-muted-foreground">
-          Modular Inventory Management System powered by double-entry stock moves, real-time WebSocket updates, and mobile barcode scanning.
-        </p>
-        <div className="mt-6 flex justify-center gap-4 text-xs font-mono text-muted-foreground">
-          <span>React 18</span>
-          <span>•</span>
-          <span>Vite</span>
-          <span>•</span>
-          <span>Tailwind</span>
-          <span>•</span>
-          <span>shadcn/ui</span>
-        </div>
-      </div>
-    </div>
+    <>
+      <Toaster
+        richColors
+        position="top-right"
+        theme="dark"
+        toastOptions={{
+          style: {
+            background: '#0f172a',
+            border: '1px solid #1e293b',
+            color: '#f8fafc',
+            borderRadius: '12px',
+          },
+        }}
+      />
+      <BrowserRouter>
+        <Routes>
+          {/* Public Auth Routes */}
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+          </Route>
+
+          {/* Protected Application Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/operations" element={<OperationsPage />} />
+              <Route path="/moves" element={<MovesPage />} />
+              <Route path="/scan" element={<ScanPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+          </Route>
+
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
-}
+};
+
+export default App;

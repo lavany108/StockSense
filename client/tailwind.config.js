@@ -7,15 +7,35 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        odoo: {
+          DEFAULT: "#714B67",
+          50: "#faf5f8",
+          100: "#f5ecf2",
+          200: "#eddbe6",
+          300: "#dfbed3",
+          400: "#ca96ba",
+          500: "#b0709e",
+          600: "#945481",
+          700: "#714B67", // Odoo flagship purple
+          800: "#633c57",
+          900: "#53344b",
+          950: "#341c2d",
+        },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "#714B67",
+          foreground: "#ffffff",
+          hover: "#5f3d56",
+          active: "#4e3146",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -43,9 +63,11 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        xl: "0.75rem",
+        "2xl": "1rem",
+        lg: "0.75rem",
+        md: "0.5rem",
+        sm: "0.375rem",
       },
     },
   },
