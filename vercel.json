@@ -1,0 +1,28 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "rootDirectory": "client",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
+  "env": {
+    "VITE_API_URL": {
+      "description": "Full URL of the backend API including /api/v1 path. Example: https://stocksense-api.onrender.com/api/v1",
+      "required": true
+    },
+    "VITE_SOCKET_URL": {
+      "description": "Full URL of the backend server root (no path). Used for Socket.io connection. Example: https://stocksense-api.onrender.com",
+      "required": true
+    }
+  }
+}

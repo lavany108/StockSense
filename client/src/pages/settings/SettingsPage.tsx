@@ -29,6 +29,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 import {
   Dialog,
   DialogContent,
@@ -389,41 +390,53 @@ export const SettingsPage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {warehouses.map((wh) => (
-                  <TableRow key={wh.id} className="border-slate-800/60">
-                    <TableCell className="font-mono font-bold text-xs text-[#dfbed3]">
-                      <Badge variant="outline" className="font-mono text-[11px]">
-                        {wh.code}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold text-white text-xs">{wh.name}</TableCell>
-                    <TableCell className="text-slate-300 text-xs font-mono">
-                      {wh._count?.locations ??
-                        locations.filter((l) => l.warehouseId === wh.id).length}{' '}
-                      location(s)
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenEditWarehouse(wh)}
-                          className="h-7 w-7 p-0 text-slate-400 hover:text-blue-300"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setItemToDelete({ type: 'WAREHOUSE', item: wh })}
-                          className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                {loading ? (
+                  <TableSkeleton rows={3} cols={4} />
+                ) : warehouses.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-10 text-slate-400">
+                      <WarehouseIcon className="h-8 w-8 mx-auto mb-2 text-slate-600" />
+                      <p className="text-sm font-medium text-slate-300">No warehouses configured yet</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Add your first warehouse to start organizing inventory.</p>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  warehouses.map((wh) => (
+                    <TableRow key={wh.id} className="border-slate-800/60">
+                      <TableCell className="font-mono font-bold text-xs text-[#dfbed3]">
+                        <Badge variant="outline" className="font-mono text-[11px]">
+                          {wh.code}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-white text-xs">{wh.name}</TableCell>
+                      <TableCell className="text-slate-300 text-xs font-mono">
+                        {wh._count?.locations ??
+                          locations.filter((l) => l.warehouseId === wh.id).length}{' '}
+                        location(s)
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenEditWarehouse(wh)}
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-blue-300"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setItemToDelete({ type: 'WAREHOUSE', item: wh })}
+                            className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

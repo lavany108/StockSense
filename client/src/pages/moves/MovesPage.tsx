@@ -21,6 +21,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -344,9 +345,27 @@ export const MovesPage: React.FC = () => {
       {/* ── Vertical Timeline Ledger ─────────────────────────────────────────── */}
       <div className="space-y-4">
         {loading ? (
-          <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/40">
-            <RefreshCw className="h-6 w-6 animate-spin text-[#dfbed3]" />
-            <span className="text-xs">Loading ledger timeline...</span>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-4 rounded-2xl border border-slate-800 bg-slate-900/80">
+                <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-800/60">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="skeleton-shimmer h-6 w-16" />
+                    <Skeleton className="skeleton-shimmer h-5 w-24" />
+                    <Skeleton className="skeleton-shimmer h-5 w-32" />
+                  </div>
+                  <Skeleton className="skeleton-shimmer h-7 w-20" />
+                </div>
+                <div className="pt-3 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="skeleton-shimmer h-5 w-32" />
+                    <Skeleton className="skeleton-shimmer h-4 w-4 rounded-full" />
+                    <Skeleton className="skeleton-shimmer h-5 w-32" />
+                  </div>
+                  <Skeleton className="skeleton-shimmer h-4 w-28" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredMoves.length === 0 ? (
           <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/40">

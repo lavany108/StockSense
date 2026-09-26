@@ -38,6 +38,7 @@ import { subscribeToSocket, joinWarehouseRoom } from '@/lib/socket';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
 import {
   Table,
   TableHeader,
@@ -393,6 +394,23 @@ export const DashboardPage: React.FC = () => {
 
       {/* ── 5 KPI Cards ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="border-slate-800 bg-slate-900/70">
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="skeleton-shimmer h-3 w-24" />
+                  <Skeleton className="skeleton-shimmer h-8 w-8 rounded-lg" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <Skeleton className="skeleton-shimmer h-8 w-16 mb-2" />
+                <Skeleton className="skeleton-shimmer h-3 w-28" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
         {/* KPI 1: Total Products */}
         <Card className="border-slate-800 bg-slate-900/70 hover:border-slate-700/80 transition-all">
           <CardHeader className="p-4 pb-2">
@@ -482,6 +500,8 @@ export const DashboardPage: React.FC = () => {
             <p className="text-[11px] text-slate-400 mt-1">Inter-location movements</p>
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
 
       {/* ── Interactive Filter Chips (Driving URL Params) ────────────────────── */}

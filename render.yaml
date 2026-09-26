@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: stocksense-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    rootDir: server
+    # ── Environment Variables (set these in Render dashboard) ──────────────
+    # DATABASE_URL     - PostgreSQL connection string (Neon / Render PostgreSQL)
+    # JWT_SECRET       - Minimum 32-char random secret for JWT signing
+    # CLIENT_URL       - Full URL of deployed Vercel client (e.g. https://stocksense.vercel.app)
+    # NODE_ENV         - Set to "production"
+    # PORT             - Render sets this automatically; keep default 10000
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 24h

@@ -38,6 +38,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 import {
   Dialog,
   DialogContent,
@@ -556,21 +557,14 @@ export const OperationsPage: React.FC = () => {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-slate-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="h-6 w-6 animate-spin text-[#dfbed3]" />
-                      <span>Loading operations pipeline...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableSkeleton rows={6} cols={8} />
               ) : documents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-slate-400">
                     <FileText className="h-8 w-8 mx-auto mb-2 text-slate-600" />
-                    <p className="text-sm font-medium text-slate-300">No operational documents found</p>
+                    <p className="text-sm font-medium text-slate-300">No pending operations 🎉</p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Create a new Receipt, Delivery, Transfer, or Adjustment above.
+                      All clear! Create a Receipt, Delivery, Transfer, or Adjustment to get started.
                     </p>
                   </TableCell>
                 </TableRow>

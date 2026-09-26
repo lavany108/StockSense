@@ -113,13 +113,13 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
       {/* ── Left Sidebar ──────────────────────────────────────────────────────── */}
-      <aside className="w-64 flex-shrink-0 flex flex-col border-r border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
+      <aside className="sidebar-responsive w-64 flex-shrink-0 flex flex-col border-r border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
         {/* Brand / Logo */}
-        <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800/80">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#714B67] to-[#9c638d] flex items-center justify-center text-white shadow-md shadow-[#714B67]/30 ring-1 ring-white/20">
+        <div className="sidebar-brand h-16 flex items-center gap-3 px-6 border-b border-slate-800/80">
+          <div className="h-9 w-9 flex-shrink-0 rounded-xl bg-gradient-to-tr from-[#714B67] to-[#9c638d] flex items-center justify-center text-white shadow-md shadow-[#714B67]/30 ring-1 ring-white/20">
             <WarehouseIcon className="h-5 w-5" />
           </div>
-          <div>
+          <div className="sidebar-brand-text">
             <div className="flex items-center gap-1.5">
               <span className="font-bold tracking-tight text-white text-base">StockSense</span>
               <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#714B67]/30 text-[#e4bfe0] border border-[#714B67]/50">
@@ -132,7 +132,7 @@ export const AppLayout: React.FC = () => {
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <div className="sidebar-section-label px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Main Menu
           </div>
           {navItems.map((item) => {
@@ -145,17 +145,17 @@ export const AppLayout: React.FC = () => {
                 key={item.name}
                 to={item.path}
                 className={({ isActive: active }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  `sidebar-nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     active
                       ? 'bg-[#714B67] text-white shadow-md shadow-[#714B67]/25 font-semibold'
                       : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
                   }`
                 }
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{item.name}</span>
+                <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <span className="sidebar-label">{item.name}</span>
                 {item.name === 'Dashboard' && lowStockCount > 0 && (
-                  <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <span className="sidebar-label ml-auto inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     {lowStockCount}
                   </span>
                 )}
@@ -171,17 +171,17 @@ export const AppLayout: React.FC = () => {
             className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-slate-700 transition-colors"
           >
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="h-8 w-8 rounded-lg bg-[#714B67]/30 border border-[#714B67]/50 flex items-center justify-center text-[#dfbed3] font-bold text-xs">
+              <div className="h-8 w-8 flex-shrink-0 rounded-lg bg-[#714B67]/30 border border-[#714B67]/50 flex items-center justify-center text-[#dfbed3] font-bold text-xs">
                 {user?.name?.charAt(0)?.toUpperCase() || 'U'}
               </div>
-              <div className="truncate">
+              <div className="sidebar-user-info truncate">
                 <p className="text-xs font-semibold text-white truncate">{user?.name || 'User'}</p>
                 <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
               </div>
             </div>
             <Badge
               variant={user?.role === 'MANAGER' ? 'default' : 'secondary'}
-              className="text-[10px] py-0 px-1.5 uppercase font-mono tracking-wider ml-1"
+              className="sidebar-user-info text-[10px] py-0 px-1.5 uppercase font-mono tracking-wider ml-1"
             >
               {user?.role || 'STAFF'}
             </Badge>
@@ -190,7 +190,7 @@ export const AppLayout: React.FC = () => {
       </aside>
 
       {/* ── Main Layout Column ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="main-content-responsive flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Navbar */}
         <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-md z-30">
           {/* Global Search Bar */}

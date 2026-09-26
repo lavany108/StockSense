@@ -31,6 +31,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 import {
   Dialog,
   DialogContent,
@@ -364,14 +365,7 @@ export const ProductsPage: React.FC = () => {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-slate-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="h-6 w-6 animate-spin text-[#dfbed3]" />
-                      <span>Loading products catalog...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableSkeleton rows={6} cols={8} />
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-slate-400">

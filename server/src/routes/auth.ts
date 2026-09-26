@@ -40,10 +40,11 @@ function setAuthCookie(res: Response, userId: string, email: string, role: strin
     process.env.JWT_SECRET as string,
     { expiresIn }
   );
+  const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('stocksense_token', token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
     maxAge: 24 * 60 * 60 * 1000,
   });
 }
